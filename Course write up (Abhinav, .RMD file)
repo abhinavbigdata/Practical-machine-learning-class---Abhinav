@@ -1,0 +1,112 @@
+---
+title: "Course write up — Abhinav"
+output: html_document_Abhinav
+---
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+getwd()
+list.files()
+##Download caret package for pre processing , prediction and validation##
+install.packages("caret")
+library(caret)
+
+##Import training + test data set##
+training<-df <- read.csv("pml-training.csv", na.strings=c("NA",""), header = TRUE)
+
+##Import validation data set##
+valid_data<-read.csv("pml-testing.csv", na.strings = c("NA", ""), header = TRUE)
+
+##Splitting training and test data set into 70% and 30% population##
+inT<-createDataPartition(training$classe, p=0.70, list = FALSE)
+train_data<-training[inT,]
+test_data<-training[-inT,]
+
+##Cross checking the sizes of the dataset
+dim(train_data)
+dim(test_data)
+dim(training)
+
+##Data preprocessing starts##
+
+##Remove any column where number of NAs are > 0##
+train_data_N<-train_data[,which(remo_cols==FALSE)]
+dim(train_data_N)
+
+##class of all variables
+sapply(train_data_N, class)
+write.csv(train_data_N[1:10,1:10], file = "test111.csv", row.names = FALSE)
+
+##After evaluation of refined data remove variables from business perspective
+## essentially the basic feed variables
+train_data_N1 <-train_data_N[,-(1:7)]
+
+##Check the Non zero variance variables
+nearZeroVar(train_data_N1, saveMetrics = T)
+##None of the remaining predictors have a non zero variance
+
+##Model 1 -- Random forest
+install.packages("randomForest")
+library(randomForest)
+
+rf_fit<-randomForest(classe~., data = train_data_N1, importance=TRUE)
+rf_fit
+confusionMatrix(predict(rf_fit,test_data), test_data$classe)
+##0.9975  (cross validation accuravy)##
+##out of sample error  0.25%##
+
+##Test the data on validation data set
+valid_output<-predict(rf_fit, valid_data)
+
+
+## Model 2 (Random forest with less number of variables) -- avoid any overfitting in future models
+##Check the correlation
+head(train_data_N1)
+corr_data<-cor(train_data_N1[,-53])
+install.packages("corrgram")
+library(corrgram)
+corrgram(corr_data)
+
+##Finding highly correlated variables##
+highcor<-findCorrelation(corr_data, cutoff=0.75)
+
+train_data_N2<-train_data_N1[,-highcor]
+dim(train_data_N2)
+
+rf_fit_N<-randomForest(classe~., data = train_data_N2, importance=TRUE)
+confusionMatrix(predict(rf_fit_N,test_data), test_data$classe)
+valid_output_N<-predict(rf_fit_N, valid_data)
+##Cross validation accuracy: 99.46%
+##Out of sample error : 0.54%
+
+## Model 3 (Try Boosted trees on N2 dataset)
+boosted_fit<-train(classe~., data=train_data_N2, method="gbm")
+confusionMatrix(predict(boosted_fit,test_data), test_data$classe)
+##cross validation accuracy : 95.24%
+##Out of sample error : 4.76%
+##Reject boosted trees because (a) takes relatively more time than RF (b) accuracy is lower than RF
+```
+
+You can also embed plots, for example:
+
+```{r, echo=FALSE}
+##Check zero variance
+nearZeroVar(train_data_N1, saveMetrics = T)
+
+##Check correlation
+corrgram(corr_data)
+
+##Confusion matrix for MODEL 1 
+confusionMatrix(predict(rf_fit,test_data), test_data$classe)
+
+##Confusion matrix for MODEL 2 (Relatively less accuracy than Model 1 in accuracy but potentiall avoids overfitting)##
+confusionMatrix(predict(rf_fit_N,test_data), test_data$classe)
+
+##Confusion matrix for MODEL 3
+confusionMatrix(predict(boosted_fit,test_data), test_data$classe)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

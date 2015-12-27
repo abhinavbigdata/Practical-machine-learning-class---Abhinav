@@ -83,6 +83,22 @@ valid_output_N<-predict(rf_fit_N, valid_data)
 ##Cross validation accuracy: 99.37%
 ##Out of sample error : 0.63%
 
+predict_N<-predict(rf_fit_N, valid_data)
+testing$classe <- predict_N
+
+submit <- data.frame(problem_id = valid_data$problem_id, classe = predict_N)
+write.csv(submit, file = "coursera-submission.csv", row.names = FALSE)
+
+answers = testing$classe
+write_files = function(x){
+  n = length(x)
+  for(i in 1:n){
+    filename = paste0("problem_",i,".txt")
+    write.table(x[i], file=filename, quote=FALSE, row.names=FALSE, col.names=FALSE)
+  }
+}
+write_files(answers)
+
 ## Model 3 (Try Boosted trees on N2 dataset)
 boosted_fit<-train(classe~., data=train_data_N2, method="gbm")
 confusionMatrix(predict(boosted_fit,test_data), test_data$classe)

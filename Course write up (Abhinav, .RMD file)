@@ -52,6 +52,7 @@ nearZeroVar(train_data_N1, saveMetrics = T)
 install.packages("randomForest")
 library(randomForest)
 
+set.seed(423)
 rf_fit<-randomForest(classe~., data = train_data_N1, importance=TRUE)
 rf_fit
 confusionMatrix(predict(rf_fit,test_data), test_data$classe)
